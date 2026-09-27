@@ -1,0 +1,868 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8"/>
+<meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover"/>
+<title>Aether — Astronomical Events Tracker</title>
+<link rel="preconnect" href="https://fonts.googleapis.com"/>
+<link href="https://fonts.googleapis.com/css2?family=Cormorant+Garamond:ital,wght@0,300;0,400;0,500;0,600;1,300;1,400&family=DM+Sans:wght@300;400;500&display=swap" rel="stylesheet"/>
+<style>
+*,*::before,*::after{box-sizing:border-box;margin:0;padding:0}
+:root{
+  --ink:#0D0B10;
+  --void:#06050A;
+  --panel:#13101A;
+  --rim:#221E2C;
+  --mist:#3A3448;
+  --dust:#7A7090;
+  --ash:#A89EC0;
+  --silver:#D4CEEA;
+  --paper:#EDE9F8;
+  --aurora:#6B4FD8;
+  --nova:#A78BFA;
+  --comet:#38BDF8;
+  --meteor:#F472B6;
+  --eclipse:#F59E0B;
+  --launch:#34D399;
+  --conjunction:#FB923C;
+  --r:14px;
+}
+html{scroll-behavior:smooth}
+body{
+  background:var(--void);
+  color:var(--silver);
+  font-family:'DM Sans',sans-serif;
+  font-weight:300;
+  line-height:1.6;
+  min-height:100vh;
+  overflow-x:hidden;
+}
+
+/* ── STARFIELD ── */
+.starfield{position:fixed;inset:0;pointer-events:none;z-index:0;overflow:hidden}
+.star{position:absolute;border-radius:50%;background:#fff;animation:twinkle var(--d,3s) ease-in-out infinite var(--delay,0s)}
+@keyframes twinkle{0%,100%{opacity:var(--lo,.1)}50%{opacity:var(--hi,.7)}}
+
+/* ── NAV ── */
+nav{
+  position:sticky;top:0;z-index:100;
+  display:flex;align-items:center;justify-content:space-between;
+  padding:18px 32px;
+  background:rgba(6,5,10,.85);
+  backdrop-filter:blur(16px);
+  border-bottom:1px solid var(--rim);
+}
+.nav-brand{
+  font-family:'Cormorant Garamond',serif;
+  font-size:22px;font-weight:500;letter-spacing:.5px;
+  color:var(--paper);display:flex;align-items:center;gap:10px;
+}
+.nav-brand svg{width:24px;height:24px;fill:var(--nova)}
+.nav-links{display:flex;gap:6px}
+.nav-links button{
+  background:none;border:none;cursor:pointer;
+  color:var(--ash);font-family:'DM Sans',sans-serif;
+  font-size:13.5px;font-weight:400;padding:7px 14px;border-radius:8px;
+  transition:background .15s,color .15s;
+}
+.nav-links button:hover,.nav-links button.active{background:var(--rim);color:var(--paper)}
+.nav-right{display:flex;align-items:center;gap:10px}
+.btn-primary{
+  background:var(--aurora);color:#fff;border:none;
+  padding:9px 20px;border-radius:10px;font-family:'DM Sans',sans-serif;
+  font-size:13.5px;font-weight:500;cursor:pointer;
+  transition:background .15s,transform .1s;
+}
+.btn-primary:hover{background:var(--nova);transform:translateY(-1px)}
+
+/* ── HERO ── */
+.hero{
+  position:relative;z-index:1;
+  display:grid;place-items:center;text-align:center;
+  padding:96px 24px 80px;
+  min-height:92vh;
+}
+.hero-eyebrow{
+  font-family:'DM Sans',sans-serif;font-size:12px;font-weight:500;
+  letter-spacing:2.5px;text-transform:uppercase;
+  color:var(--nova);margin-bottom:24px;
+  display:flex;align-items:center;justify-content:center;gap:10px;
+}
+.hero-eyebrow::before,.hero-eyebrow::after{
+  content:'';display:block;width:32px;height:1px;background:var(--aurora);opacity:.5;
+}
+.hero-title{
+  font-family:'Cormorant Garamond',serif;
+  font-size:clamp(48px,8vw,100px);
+  font-weight:300;line-height:1.05;
+  color:var(--paper);margin-bottom:28px;
+  max-width:800px;
+}
+.hero-title em{font-style:italic;color:var(--nova)}
+.hero-sub{
+  font-size:17px;color:var(--ash);line-height:1.7;
+  max-width:520px;margin:0 auto 44px;font-weight:300;
+}
+.hero-actions{display:flex;gap:14px;justify-content:center;flex-wrap:wrap}
+.btn-ghost{
+  background:transparent;border:1px solid var(--rim);
+  color:var(--silver);padding:12px 26px;border-radius:10px;
+  font-family:'DM Sans',sans-serif;font-size:14px;font-weight:400;
+  cursor:pointer;transition:border-color .15s,color .15s;
+}
+.btn-ghost:hover{border-color:var(--mist);color:var(--paper)}
+.hero-stats{
+  display:flex;gap:40px;margin-top:64px;
+  justify-content:center;flex-wrap:wrap;
+}
+.stat{text-align:center}
+.stat-n{
+  font-family:'Cormorant Garamond',serif;
+  font-size:36px;font-weight:400;color:var(--paper);line-height:1;
+}
+.stat-l{font-size:12px;color:var(--dust);margin-top:4px;letter-spacing:.5px}
+
+/* ── SECTION SHELL ── */
+.section{position:relative;z-index:1;padding:80px 24px}
+.section-inner{max-width:1100px;margin:0 auto}
+.section-header{margin-bottom:52px}
+.section-title{
+  font-family:'Cormorant Garamond',serif;
+  font-size:clamp(32px,4vw,48px);font-weight:400;
+  color:var(--paper);line-height:1.15;margin-bottom:12px;
+}
+.section-desc{color:var(--ash);font-size:15px;max-width:480px}
+
+/* ── FILTER BAR ── */
+.filter-bar{
+  display:flex;gap:8px;margin-bottom:36px;
+  flex-wrap:wrap;align-items:center;
+}
+.filter-chip{
+  background:var(--panel);border:1px solid var(--rim);
+  color:var(--ash);padding:7px 16px;border-radius:20px;
+  font-size:13px;cursor:pointer;font-family:'DM Sans',sans-serif;
+  font-weight:400;transition:all .15s;white-space:nowrap;
+}
+.filter-chip:hover{border-color:var(--mist);color:var(--silver)}
+.filter-chip.active{border-color:var(--aurora);color:var(--nova);background:rgba(107,79,216,.12)}
+.search-box{
+  margin-left:auto;position:relative;
+}
+.search-box input{
+  background:var(--panel);border:1px solid var(--rim);
+  color:var(--silver);padding:8px 14px 8px 36px;
+  border-radius:10px;font-family:'DM Sans',sans-serif;
+  font-size:13.5px;width:220px;outline:none;
+  transition:border-color .15s;
+}
+.search-box input:focus{border-color:var(--mist)}
+.search-box input::placeholder{color:var(--dust)}
+.search-icon{
+  position:absolute;left:12px;top:50%;transform:translateY(-50%);
+  color:var(--dust);pointer-events:none;
+}
+
+/* ── EVENT GRID ── */
+.events-grid{
+  display:grid;
+  grid-template-columns:repeat(auto-fill,minmax(320px,1fr));
+  gap:20px;
+}
+.event-card{
+  background:var(--panel);border:1px solid var(--rim);
+  border-radius:var(--r);overflow:hidden;cursor:pointer;
+  transition:border-color .2s,transform .2s;
+  display:flex;flex-direction:column;
+}
+.event-card:hover{border-color:var(--mist);transform:translateY(-3px)}
+.card-top{
+  height:4px;
+  background:linear-gradient(90deg,var(--color-a),var(--color-b));
+}
+.card-body{padding:22px 22px 20px;flex:1;display:flex;flex-direction:column}
+.card-meta{
+  display:flex;align-items:center;justify-content:space-between;
+  margin-bottom:14px;
+}
+.type-badge{
+  font-size:11px;font-weight:500;letter-spacing:.8px;
+  padding:4px 10px;border-radius:6px;
+  background:var(--badge-bg);color:var(--badge-color);
+  font-family:'DM Sans',sans-serif;
+}
+.countdown{
+  font-size:12px;color:var(--dust);
+  font-variant-numeric:tabular-nums;
+}
+.card-title{
+  font-family:'Cormorant Garamond',serif;
+  font-size:21px;font-weight:500;color:var(--paper);
+  line-height:1.25;margin-bottom:10px;
+}
+.card-desc{
+  font-size:13.5px;color:var(--ash);line-height:1.6;
+  flex:1;margin-bottom:18px;
+  display:-webkit-box;-webkit-line-clamp:3;-webkit-box-orient:vertical;overflow:hidden;
+}
+.card-footer{
+  display:flex;align-items:center;justify-content:space-between;
+  border-top:1px solid var(--rim);padding-top:14px;
+}
+.card-when{font-size:12px;color:var(--dust)}
+.card-region{font-size:12px;color:var(--dust)}
+.notify-btn{
+  display:flex;align-items:center;gap:6px;
+  background:none;border:1px solid var(--rim);
+  color:var(--ash);padding:6px 13px;border-radius:8px;
+  font-size:12.5px;cursor:pointer;font-family:'DM Sans',sans-serif;
+  transition:all .15s;
+}
+.notify-btn:hover{border-color:var(--aurora);color:var(--nova)}
+.notify-btn.active{
+  background:rgba(107,79,216,.15);
+  border-color:var(--aurora);color:var(--nova);
+}
+
+/* ── DETAIL PANEL ── */
+.overlay{
+  position:fixed;inset:0;z-index:200;
+  background:rgba(6,5,10,.7);
+  backdrop-filter:blur(6px);
+  display:flex;align-items:flex-end;justify-content:center;
+  opacity:0;pointer-events:none;transition:opacity .25s;
+}
+.overlay.open{opacity:1;pointer-events:all}
+.detail-panel{
+  background:var(--panel);
+  border:1px solid var(--rim);
+  border-radius:20px 20px 0 0;
+  width:100%;max-width:680px;
+  max-height:88vh;overflow-y:auto;
+  padding:32px 32px 40px;
+  transform:translateY(100%);
+  transition:transform .3s cubic-bezier(.4,0,.2,1);
+  position:relative;
+}
+.overlay.open .detail-panel{transform:translateY(0)}
+.panel-close{
+  position:absolute;top:20px;right:20px;
+  background:var(--rim);border:none;color:var(--ash);
+  width:34px;height:34px;border-radius:50%;
+  font-size:16px;cursor:pointer;display:grid;place-items:center;
+  transition:background .15s;
+}
+.panel-close:hover{background:var(--mist)}
+.panel-accent{height:3px;border-radius:3px;margin-bottom:24px;
+  background:linear-gradient(90deg,var(--color-a),var(--color-b))}
+.panel-type{font-size:11px;font-weight:500;letter-spacing:.8px;
+  color:var(--badge-color);margin-bottom:10px}
+.panel-title{
+  font-family:'Cormorant Garamond',serif;
+  font-size:clamp(26px,4vw,36px);font-weight:400;
+  color:var(--paper);line-height:1.2;margin-bottom:8px;
+}
+.panel-when{font-size:13px;color:var(--dust);margin-bottom:24px}
+.panel-text{font-size:15px;color:var(--ash);line-height:1.7;margin-bottom:20px}
+.panel-section{
+  background:var(--ink);border:1px solid var(--rim);
+  border-radius:12px;padding:18px 20px;margin-bottom:16px;
+}
+.panel-section-title{
+  font-size:11px;font-weight:500;letter-spacing:1.5px;
+  text-transform:uppercase;color:var(--dust);margin-bottom:10px;
+  display:flex;align-items:center;gap:8px;
+}
+.panel-section-text{font-size:14px;color:var(--ash);line-height:1.65}
+.concierge-box{
+  background:linear-gradient(135deg,rgba(107,79,216,.1),rgba(56,189,248,.06));
+  border:1px solid rgba(107,79,216,.3);border-radius:12px;
+  padding:18px 20px;margin-bottom:20px;
+}
+.concierge-header{
+  display:flex;align-items:center;gap:8px;
+  font-size:11px;font-weight:500;letter-spacing:1.5px;
+  text-transform:uppercase;color:var(--nova);margin-bottom:12px;
+}
+.concierge-text{font-size:14px;color:var(--silver);line-height:1.65}
+.conditions{display:flex;gap:16px;margin-top:12px;flex-wrap:wrap}
+.cond-pill{
+  display:flex;align-items:center;gap:6px;
+  background:rgba(255,255,255,.05);border-radius:6px;
+  padding:5px 12px;font-size:12px;color:var(--ash);
+}
+.loading-pulse{
+  display:flex;align-items:center;gap:10px;
+  color:var(--dust);font-size:13.5px;
+}
+.pulse-dot{
+  width:8px;height:8px;border-radius:50%;
+  background:var(--aurora);
+  animation:pulse 1.2s ease-in-out infinite;
+}
+@keyframes pulse{0%,100%{opacity:.3;transform:scale(.8)}50%{opacity:1;transform:scale(1.2)}}
+.full-notify-btn{
+  width:100%;display:flex;align-items:center;justify-content:center;gap:10px;
+  background:var(--aurora);color:#fff;border:none;
+  padding:15px;border-radius:12px;font-family:'DM Sans',sans-serif;
+  font-size:15px;font-weight:500;cursor:pointer;
+  transition:background .15s,transform .1s;
+}
+.full-notify-btn:hover{background:var(--nova);transform:translateY(-1px)}
+.full-notify-btn.active{background:var(--rim);color:var(--ash)}
+
+/* ── TIMELINE SECTION ── */
+.timeline{position:relative;padding-left:28px}
+.timeline::before{
+  content:'';position:absolute;left:0;top:0;bottom:0;
+  width:1px;background:var(--rim);
+}
+.tl-item{position:relative;margin-bottom:28px}
+.tl-dot{
+  position:absolute;left:-34px;top:4px;
+  width:12px;height:12px;border-radius:50%;
+  border:2px solid var(--panel);
+  background:var(--color-dot,var(--aurora));
+}
+.tl-time{font-size:11.5px;color:var(--dust);margin-bottom:4px}
+.tl-name{
+  font-family:'Cormorant Garamond',serif;
+  font-size:18px;color:var(--paper);margin-bottom:4px;
+}
+.tl-type{font-size:12px;color:var(--ash)}
+
+/* ── AI PIPELINE SECTION ── */
+.pipeline{
+  display:grid;
+  grid-template-columns:repeat(auto-fit,minmax(220px,1fr));
+  gap:16px;margin-top:8px;
+}
+.pipe-step{
+  background:var(--panel);border:1px solid var(--rim);
+  border-radius:12px;padding:22px;position:relative;overflow:hidden;
+}
+.pipe-step::after{
+  content:'';position:absolute;top:0;left:0;right:0;height:2px;
+  background:linear-gradient(90deg,var(--color-a),var(--color-b));
+}
+.pipe-num{
+  font-family:'Cormorant Garamond',serif;
+  font-size:40px;font-weight:300;color:var(--rim);
+  line-height:1;margin-bottom:14px;
+}
+.pipe-label{
+  font-size:13.5px;font-weight:500;color:var(--paper);margin-bottom:6px;
+}
+.pipe-desc{font-size:12.5px;color:var(--dust);line-height:1.55}
+
+/* ── TOAST ── */
+.toast{
+  position:fixed;bottom:28px;left:50%;transform:translateX(-50%) translateY(20px);
+  background:var(--paper);color:var(--ink);
+  padding:11px 20px;border-radius:30px;
+  font-size:13px;font-family:'DM Sans',sans-serif;font-weight:500;
+  box-shadow:0 16px 40px rgba(0,0,0,.5);
+  z-index:300;opacity:0;transition:opacity .2s,transform .2s;pointer-events:none;
+}
+.toast.show{opacity:1;transform:translateX(-50%) translateY(0)}
+
+/* ── FOOTER ── */
+footer{
+  position:relative;z-index:1;
+  border-top:1px solid var(--rim);
+  padding:40px 32px;
+  display:flex;align-items:center;justify-content:space-between;flex-wrap:wrap;gap:16px;
+}
+.footer-brand{font-family:'Cormorant Garamond',serif;font-size:18px;color:var(--ash)}
+.footer-note{font-size:12px;color:var(--dust)}
+
+/* ── RESPONSIVE ── */
+@media(max-width:640px){
+  nav{padding:14px 18px}
+  .nav-links{display:none}
+  .section{padding:60px 16px}
+  .detail-panel{padding:24px 20px 32px}
+  .hero{padding:72px 18px 60px}
+  footer{padding:28px 18px}
+  .search-box input{width:160px}
+}
+</style>
+</head>
+<body>
+
+<!-- Starfield -->
+<div class="starfield" id="starfield"></div>
+
+<!-- Nav -->
+<nav>
+  <div class="nav-brand">
+    <svg viewBox="0 0 24 24" xmlns="http://www.w3.org/2000/svg">
+      <path d="M12 2a10 10 0 1 0 0 20A10 10 0 0 0 12 2zm0 18a8 8 0 1 1 0-16 8 8 0 0 1 0 16zm0-14a6 6 0 1 0 0 12A6 6 0 0 0 12 6zm0 10a4 4 0 1 1 0-8 4 4 0 0 1 0 8z"/>
+    </svg>
+    Aether
+  </div>
+  <div class="nav-links">
+    <button class="active" onclick="scrollTo('events-section')">Events</button>
+    <button onclick="scrollTo('pipeline-section')">How It Works</button>
+    <button onclick="scrollTo('timeline-section')">Timeline</button>
+  </div>
+  <div class="nav-right">
+    <button class="btn-primary" onclick="showToast('Sign up coming soon — stay tuned!')">Sign up free</button>
+  </div>
+</nav>
+
+<!-- Hero -->
+<section class="hero">
+  <div>
+    <p class="hero-eyebrow">Astronomical Events Tracker</p>
+    <h1 class="hero-title">The night sky,<br/><em>explained</em></h1>
+    <p class="hero-sub">
+      Real-time celestial events enriched by AI — with personalized viewing forecasts
+      based on your location, cloud cover, and light pollution.
+    </p>
+    <div class="hero-actions">
+      <button class="btn-primary" style="padding:13px 30px;font-size:15px" onclick="document.getElementById('events-section').scrollIntoView({behavior:'smooth'})">
+        View tonight's events
+      </button>
+      <button class="btn-ghost" onclick="document.getElementById('pipeline-section').scrollIntoView({behavior:'smooth'})">
+        How it works
+      </button>
+    </div>
+    <div class="hero-stats">
+      <div class="stat"><div class="stat-n">5</div><div class="stat-l">Event types</div></div>
+      <div class="stat"><div class="stat-n">24h</div><div class="stat-l">Advance alerts</div></div>
+      <div class="stat"><div class="stat-n">AI</div><div class="stat-l">Personalized insight</div></div>
+      <div class="stat"><div class="stat-n">UTC</div><div class="stat-l">Precision timing</div></div>
+    </div>
+  </div>
+</section>
+
+<!-- Events Section -->
+<section class="section" id="events-section">
+  <div class="section-inner">
+    <div class="section-header">
+      <h2 class="section-title">Upcoming events</h2>
+      <p class="section-desc">Tap any event for AI-generated viewing advice tailored to your sky conditions.</p>
+    </div>
+    <div class="filter-bar">
+      <button class="filter-chip active" data-filter="ALL">All</button>
+      <button class="filter-chip" data-filter="ECLIPSE">Eclipse</button>
+      <button class="filter-chip" data-filter="METEOR_SHOWER">Meteor Shower</button>
+      <button class="filter-chip" data-filter="COMET">Comet</button>
+      <button class="filter-chip" data-filter="ROCKET_LAUNCH">Rocket Launch</button>
+      <button class="filter-chip" data-filter="CONJUNCTION">Conjunction</button>
+      <div class="search-box">
+        <svg class="search-icon" width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><circle cx="11" cy="11" r="8"/><path d="m21 21-4.35-4.35"/></svg>
+        <input type="text" id="search-input" placeholder="Search events…"/>
+      </div>
+    </div>
+    <div class="events-grid" id="events-grid"></div>
+  </div>
+</section>
+
+<!-- How It Works (Pipeline) -->
+<section class="section" id="pipeline-section" style="background:var(--ink)">
+  <div class="section-inner">
+    <div class="section-header">
+      <h2 class="section-title">From raw telemetry to your pocket</h2>
+      <p class="section-desc">A four-stage pipeline turns NASA/ESA data feeds into plain-language insights.</p>
+    </div>
+    <div class="pipeline">
+      <div class="pipe-step" style="--color-a:var(--comet);--color-b:var(--aurora)">
+        <div class="pipe-num">01</div>
+        <div class="pipe-label">Ingest</div>
+        <div class="pipe-desc">Raw telemetry arrives from NASA, ESA, and Launch Library APIs. Deterministic fields — coordinates, timestamps — are persisted immediately, untouched.</div>
+      </div>
+      <div class="pipe-step" style="--color-a:var(--aurora);--color-b:var(--nova)">
+        <div class="pipe-num">02</div>
+        <div class="pipe-label">Agent A — Enrichment</div>
+        <div class="pipe-desc">The Astro-Contextualizer worker dispatches to Claude. It writes the description and viewing advice. A Zod schema blocks any attempt to alter times or geometry.</div>
+      </div>
+      <div class="pipe-step" style="--color-a:var(--nova);--color-b:var(--meteor)">
+        <div class="pipe-num">03</div>
+        <div class="pipe-label">Geo-match</div>
+        <div class="pipe-desc">PostGIS ST_Contains checks each user's home point against the event's visibility polygon. Matched users get Notification rows created — idempotently.</div>
+      </div>
+      <div class="pipe-step" style="--color-a:var(--meteor);--color-b:var(--eclipse)">
+        <div class="pipe-num">04</div>
+        <div class="pipe-label">Agent B — Dispatch</div>
+        <div class="pipe-desc">At T-24h, the Observation Concierge pulls live weather and light-pollution data for your exact location, then writes a hyper-personal push notification.</div>
+      </div>
+    </div>
+  </div>
+</section>
+
+<!-- Timeline Section -->
+<section class="section" id="timeline-section">
+  <div class="section-inner" style="display:grid;grid-template-columns:1fr 1fr;gap:64px;align-items:start">
+    <div>
+      <div class="section-header">
+        <h2 class="section-title">The next 7 days</h2>
+        <p class="section-desc">Every event in chronological order.</p>
+      </div>
+      <div class="timeline" id="timeline-list"></div>
+    </div>
+    <div>
+      <div class="section-header">
+        <h2 class="section-title">Your sky, personalised</h2>
+      </div>
+      <p style="color:var(--ash);font-size:15px;line-height:1.7;margin-bottom:24px">
+        Set your home location and Aether cross-references the event visibility polygon
+        with PostGIS. If you're in the viewing zone, you'll receive:
+      </p>
+      <div style="display:flex;flex-direction:column;gap:14px">
+        <div class="panel-section">
+          <div class="panel-section-title">
+            <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="var(--nova)" stroke-width="2"><path d="M18 8h1a4 4 0 0 1 0 8h-1"/><path d="M2 8h16v9a4 4 0 0 1-4 4H6a4 4 0 0 1-4-4V8z"/><line x1="6" y1="1" x2="6" y2="4"/><line x1="10" y1="1" x2="10" y2="4"/><line x1="14" y1="1" x2="14" y2="4"/></svg>
+            24 hours before
+          </div>
+          <div class="panel-section-text">Personalized cloud-cover forecast and a driving direction to the nearest clear sky patch.</div>
+        </div>
+        <div class="panel-section">
+          <div class="panel-section-title">
+            <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="var(--eclipse)" stroke-width="2"><circle cx="12" cy="12" r="10"/><polyline points="12 6 12 12 16 14"/></svg>
+            1 hour before
+          </div>
+          <div class="panel-section-text">Final nudge with optimal viewing time window and equipment recommendation.</div>
+        </div>
+      </div>
+    </div>
+  </div>
+</section>
+
+<!-- Detail Overlay -->
+<div class="overlay" id="overlay" onclick="closePanel(event)">
+  <div class="detail-panel" id="detail-panel">
+    <button class="panel-close" onclick="closeOverlay()">✕</button>
+    <div class="panel-accent" id="panel-accent"></div>
+    <div class="panel-type" id="panel-type"></div>
+    <h2 class="panel-title" id="panel-title"></h2>
+    <p class="panel-when" id="panel-when"></p>
+    <p class="panel-text" id="panel-desc"></p>
+    <div class="panel-section">
+      <div class="panel-section-title">
+        <svg width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><circle cx="11" cy="11" r="8"/><path d="M21 21l-4.35-4.35"/><line x1="11" y1="8" x2="11" y2="14"/><line x1="8" y1="11" x2="14" y2="11"/></svg>
+        Scientific context
+      </div>
+      <div class="panel-section-text" id="panel-science"></div>
+    </div>
+    <div class="panel-section">
+      <div class="panel-section-title">
+        <svg width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><circle cx="12" cy="12" r="10"/><line x1="12" y1="8" x2="12" y2="12"/><line x1="12" y1="16" x2="12.01" y2="16"/></svg>
+        Viewing recommendation
+      </div>
+      <div class="panel-section-text" id="panel-viewing"></div>
+    </div>
+    <div class="concierge-box">
+      <div class="concierge-header">
+        <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="var(--nova)" stroke-width="2"><polygon points="12 2 15.09 8.26 22 9.27 17 14.14 18.18 21.02 12 17.77 5.82 21.02 7 14.14 2 9.27 8.91 8.26 12 2"/></svg>
+        Observation Concierge
+      </div>
+      <div id="concierge-content">
+        <div class="loading-pulse">
+          <div class="pulse-dot"></div>
+          <span>Checking sky conditions for your location…</span>
+        </div>
+      </div>
+    </div>
+    <button class="full-notify-btn" id="panel-notify-btn" onclick="togglePanelNotify()">
+      <svg width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M18 8A6 6 0 0 0 6 8c0 7-3 9-3 9h18s-3-2-3-9"/><path d="M13.73 21a2 2 0 0 1-3.46 0"/></svg>
+      Notify me 24h and 1h before
+    </button>
+  </div>
+</div>
+
+<!-- Footer -->
+<footer>
+  <div class="footer-brand">Aether</div>
+  <div class="footer-note">AET — Astronomical Events Tracker · Built with Node.js, PostGIS, BullMQ & Claude</div>
+</footer>
+
+<!-- Toast -->
+<div class="toast" id="toast"></div>
+
+<script>
+// ── DATA ──
+function addH(h){return new Date(Date.now()+h*3600000)}
+function addD(d){return addH(d*24)}
+
+const TYPE_META = {
+  ECLIPSE:       {label:'Eclipse',       ca:'#F59E0B',cb:'#EF4444',bg:'rgba(245,158,11,.12)',tc:'#F59E0B'},
+  METEOR_SHOWER: {label:'Meteor Shower', ca:'#A78BFA',cb:'#6B4FD8',bg:'rgba(167,139,250,.12)',tc:'#A78BFA'},
+  COMET:         {label:'Comet',         ca:'#38BDF8',cb:'#6B4FD8',bg:'rgba(56,189,248,.12)', tc:'#38BDF8'},
+  ROCKET_LAUNCH: {label:'Rocket Launch', ca:'#34D399',cb:'#06B6D4',bg:'rgba(52,211,153,.12)',tc:'#34D399'},
+  CONJUNCTION:   {label:'Conjunction',   ca:'#FB923C',cb:'#F472B6',bg:'rgba(251,146,60,.12)', tc:'#FB923C'},
+};
+
+const DIFFICULTY = {
+  NAKED_EYE:'No equipment needed',
+  BINOCULARS:'Binoculars recommended',
+  TELESCOPE_SMALL:'Small telescope ideal',
+  TELESCOPE_LARGE:'Large telescope required',
+};
+
+const ENRICHMENT = {
+  ECLIPSE:{
+    generalSummary:"Earth's shadow crosses the Moon, gradually dimming it to a deep copper hue visible across the night side of Earth. The effect lasts hours and requires no equipment.",
+    scientificSummary:"A penumbral-to-umbral progression causes the luminance drop. Refracted sunlight filtered through Earth's atmosphere gives the Moon its characteristic reddish tone during totality — wavelength-dependent Rayleigh scattering removes shorter blue wavelengths.",
+    viewingRecommendation:"Find open sky with a low eastern horizon. No telescope needed, though 7×50 binoculars reveal the color gradient beautifully during totality.",
+    difficultyLevel:"NAKED_EYE",
+    tags:["moon","shadow","totality","naked-eye"],
+  },
+  METEOR_SHOWER:{
+    generalSummary:"Earth sweeps through a comet's debris trail, sending dozens of meteoroids per hour blazing across the upper atmosphere at 60 km/s. Brightest after local midnight when your location faces into the stream head-on.",
+    scientificSummary:"Parent body debris (often 1 mm–1 cm silicate grains) ablate at 80–110 km altitude. The radiant appears fixed by parallax — meteors diverge from the shower's namesake constellation due to Earth's orbital vector.",
+    viewingRecommendation:"Lie flat on a reclining chair facing south, eyes fully adapted to the dark after 20 minutes. Avoid phone screens. Peak ZHR: 100+ under ideal conditions.",
+    difficultyLevel:"NAKED_EYE",
+    tags:["meteor","comet-debris","radiant","ZHR"],
+  },
+  COMET:{
+    generalSummary:"A pristine icy body from the outer solar system swings through the inner solar system, its nucleus vaporizing to produce a visible coma and tail pointing away from the Sun.",
+    scientificSummary:"Solar radiation pressure and the solar wind create separate dust and ion tails. Magnitude estimates are uncertain until the coma fully develops within 2 AU — outbursts can dramatically brighten or fade predictions.",
+    viewingRecommendation:"Use binoculars or a 6-inch telescope with a wide field. Look 45 minutes after sunset near the western horizon. A diffuse, slightly elongated smudge confirms you've found it.",
+    difficultyLevel:"BINOCULARS",
+    tags:["comet","coma","ion-tail","perihelion"],
+  },
+  ROCKET_LAUNCH:{
+    generalSummary:"A heavy-lift rocket ascends to orbital insertion, leaving a twisting exhaust plume briefly visible to observers within 200 km of the launch azimuth under twilight conditions.",
+    scientificSummary:"First stage separation occurs approximately T+2:30. The exhaust plume scatters sunset/sunrise light at altitude, producing noctilucent-cloud-like visibility far beyond the immediate launch zone.",
+    viewingRecommendation:"Face the published azimuth and watch for a moving star-like point of light 8–10 minutes post-liftoff. A distinct \"jellyfish\" plume forms at MECO.",
+    difficultyLevel:"NAKED_EYE",
+    tags:["rocket","LEO","plume","SpaceX"],
+  },
+  CONJUNCTION:{
+    generalSummary:"Two planets appear to pass within 1° of each other in the evening sky — a striking sight that fits both planets within a single binocular field of view.",
+    scientificSummary:"An optical alignment only — the planets are hundreds of millions of kilometres apart. The apparent proximity results from the projection of both bodies onto the celestial sphere from Earth's vantage point.",
+    viewingRecommendation:"Look west 30–60 minutes after sunset before the planets set below 10° altitude. A telescope at 50× reveals both planetary disks in the same eyepiece.",
+    difficultyLevel:"NAKED_EYE",
+    tags:["planets","conjunction","evening-sky","opposition"],
+  },
+};
+
+const CONCIERGE_RESPONSES = [
+  (ev,cloud,bortle)=>`Skies near your location should be ${cloud<30?'mostly clear':'partly cloudy'} at ${cloud}% cloud cover tonight. With a Bortle ${bortle} sky, ${ev.name.toLowerCase()} will ${bortle<5?'be clearly visible to the naked eye':'benefit from a dark-sky site 20 km from the city centre'}.`,
+  (ev,cloud,bortle)=>`Cloud cover is running ${cloud}% — ${cloud>60?'consider driving 15 miles inland for a clearer window before the event peaks':'conditions look workable from your home location'}. Light pollution index is Bortle ${bortle}/9.`,
+  (ev,cloud,bortle)=>`${cloud<40?'Clear skies ahead':'Patchy cloud'} for ${ev.name}. Your Bortle ${bortle} sky rating means ${bortle<=3?'exceptional contrast — lucky you':'turning off nearby streetlights will help meaningfully'}.`,
+];
+
+const EVENTS = [
+  {id:'ev1',name:'Perseid Meteor Shower Peak',type:'METEOR_SHOWER',eventUtcTime:addH(18),region:'Northern Hemisphere',dataSource:'NASA Meteor Watch'},
+  {id:'ev2',name:'Partial Lunar Eclipse',type:'ECLIPSE',eventUtcTime:addH(44),region:'Asia / Western Pacific',dataSource:'ESA Ephemeris'},
+  {id:'ev3',name:'Comet 12P/Pons–Brooks Close Approach',type:'COMET',eventUtcTime:addH(138),region:'Global',dataSource:'NASA JPL Horizons'},
+  {id:'ev4',name:'Falcon Heavy Ascent — Visible Plume',type:'ROCKET_LAUNCH',eventUtcTime:addH(6),region:'Cape Canaveral, FL',dataSource:'Launch Library 2'},
+  {id:'ev5',name:'Venus–Jupiter Conjunction',type:'CONJUNCTION',eventUtcTime:addH(70),region:'Global',dataSource:'ESA Ephemeris'},
+  {id:'ev6',name:'Leonid Meteor Shower (sub-peak)',type:'METEOR_SHOWER',eventUtcTime:addD(5),region:'Northern Hemisphere',dataSource:'NASA Meteor Watch'},
+  {id:'ev7',name:'Penumbral Lunar Eclipse',type:'ECLIPSE',eventUtcTime:addD(6),region:'Europe / Africa',dataSource:'ESA Ephemeris'},
+];
+
+// ── STATE ──
+let activeFilter='ALL', searchQ='', subscribed={}, activeEvent=null;
+
+// ── RENDER STARS ──
+(function(){
+  const sf=document.getElementById('starfield');
+  for(let i=0;i<160;i++){
+    const s=document.createElement('div');
+    s.className='star';
+    const sz=Math.random()<.15?2:1;
+    Object.assign(s.style,{
+      width:sz+'px',height:sz+'px',
+      left:Math.random()*100+'%',top:Math.random()*100+'%',
+      '--d':(2+Math.random()*4).toFixed(1)+'s',
+      '--delay':-(Math.random()*4).toFixed(1)+'s',
+      '--lo':(0.05+Math.random()*0.1).toFixed(2),
+      '--hi':(0.4+Math.random()*0.5).toFixed(2),
+    });
+    sf.appendChild(s);
+  }
+})();
+
+// ── UTILS ──
+function formatLocal(d){
+  return d.toLocaleString(undefined,{weekday:'short',month:'short',day:'numeric',hour:'numeric',minute:'2-digit',timeZoneName:'short'});
+}
+function timeUntil(d){
+  const ms=d-Date.now();
+  if(ms<0)return'passed';
+  const h=Math.floor(ms/3600000),m=Math.floor((ms%3600000)/60000);
+  if(h<1)return`${m}m`;
+  if(h<24)return`${h}h ${m}m`;
+  const dy=Math.floor(h/24);return`${dy}d ${h%24}h`;
+}
+function showToast(msg){
+  const t=document.getElementById('toast');
+  t.textContent=msg;t.classList.add('show');
+  setTimeout(()=>t.classList.remove('show'),2600);
+}
+function scrollTo(id){document.getElementById(id).scrollIntoView({behavior:'smooth'})}
+
+// ── FILTER + SEARCH ──
+document.querySelectorAll('.filter-chip').forEach(btn=>{
+  btn.addEventListener('click',()=>{
+    document.querySelectorAll('.filter-chip').forEach(b=>b.classList.remove('active'));
+    btn.classList.add('active');
+    activeFilter=btn.dataset.filter;
+    renderGrid();
+  });
+});
+document.getElementById('search-input').addEventListener('input',e=>{
+  searchQ=e.target.value.toLowerCase();renderGrid();
+});
+
+// ── GRID ──
+function renderGrid(){
+  const filtered=EVENTS.filter(ev=>{
+    if(activeFilter!=='ALL'&&ev.type!==activeFilter)return false;
+    if(searchQ&&!ev.name.toLowerCase().includes(searchQ))return false;
+    return true;
+  }).sort((a,b)=>a.eventUtcTime-b.eventUtcTime);
+
+  const grid=document.getElementById('events-grid');
+  if(!filtered.length){
+    grid.innerHTML=`<div style="grid-column:1/-1;text-align:center;color:var(--dust);padding:60px 0;font-size:15px">No events match your search.</div>`;
+    return;
+  }
+  grid.innerHTML=filtered.map(ev=>{
+    const m=TYPE_META[ev.type];
+    const en=ENRICHMENT[ev.type];
+    const isSub=!!subscribed[ev.id];
+    return`<article class="event-card" onclick="openEvent('${ev.id}')">
+      <div class="card-top" style="--color-a:${m.ca};--color-b:${m.cb}"></div>
+      <div class="card-body">
+        <div class="card-meta">
+          <span class="type-badge" style="--badge-bg:${m.bg};--badge-color:${m.tc}">${m.label}</span>
+          <span class="countdown">in ${timeUntil(ev.eventUtcTime)}</span>
+        </div>
+        <h3 class="card-title">${ev.name}</h3>
+        <p class="card-desc">${en.generalSummary}</p>
+        <div class="card-footer">
+          <span class="card-when">${formatLocal(ev.eventUtcTime)}</span>
+          <button class="notify-btn${isSub?' active':''}" onclick="event.stopPropagation();toggleSub('${ev.id}')">
+            <svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+              ${isSub
+                ?'<polyline points="20 6 9 17 4 12"/>'
+                :'<path d="M18 8A6 6 0 0 0 6 8c0 7-3 9-3 9h18s-3-2-3-9"/><path d="M13.73 21a2 2 0 0 1-3.46 0"/>'}
+            </svg>
+            ${isSub?'Notified':'Notify me'}
+          </button>
+        </div>
+      </div>
+    </article>`;
+  }).join('');
+}
+renderGrid();
+
+// ── TIMELINE ──
+function renderTimeline(){
+  const sorted=[...EVENTS].sort((a,b)=>a.eventUtcTime-b.eventUtcTime);
+  document.getElementById('timeline-list').innerHTML=sorted.map(ev=>{
+    const m=TYPE_META[ev.type];
+    return`<div class="tl-item">
+      <div class="tl-dot" style="--color-dot:${m.ca}"></div>
+      <div class="tl-time">${formatLocal(ev.eventUtcTime)}</div>
+      <div class="tl-name">${ev.name}</div>
+      <div class="tl-type" style="color:${m.tc}">${m.label}</div>
+    </div>`;
+  }).join('');
+}
+renderTimeline();
+
+// ── SUBSCRIBE ──
+function toggleSub(id){
+  subscribed[id]=!subscribed[id];
+  const ev=EVENTS.find(e=>e.id===id);
+  showToast(subscribed[id]
+    ?`You'll be notified 24h and 1h before ${ev.name}`
+    :`Notifications off for ${ev.name}`);
+  renderGrid();
+  if(activeEvent&&activeEvent.id===id){
+    document.getElementById('panel-notify-btn').textContent=
+      subscribed[id]?'✓  Notifications scheduled':'  Notify me 24h and 1h before';
+    document.getElementById('panel-notify-btn').classList.toggle('active',!!subscribed[id]);
+  }
+}
+function togglePanelNotify(){
+  if(activeEvent)toggleSub(activeEvent.id);
+}
+
+// ── DETAIL PANEL ──
+function openEvent(id){
+  const ev=EVENTS.find(e=>e.id===id);
+  if(!ev)return;
+  activeEvent=ev;
+  const m=TYPE_META[ev.type];
+  const en=ENRICHMENT[ev.type];
+  const isSub=!!subscribed[ev.id];
+
+  document.getElementById('panel-accent').style.background=`linear-gradient(90deg,${m.ca},${m.cb})`;
+  document.getElementById('panel-type').textContent=m.label;
+  document.getElementById('panel-type').style.color=m.tc;
+  document.getElementById('panel-title').textContent=ev.name;
+  document.getElementById('panel-when').textContent=`${formatLocal(ev.eventUtcTime)} · ${ev.region} · ${ev.dataSource}`;
+  document.getElementById('panel-desc').textContent=en.generalSummary;
+  document.getElementById('panel-science').textContent=en.scientificSummary;
+  document.getElementById('panel-viewing').textContent=`${en.viewingRecommendation} — ${DIFFICULTY[en.difficultyLevel]}.`;
+
+  const nb=document.getElementById('panel-notify-btn');
+  nb.classList.toggle('active',isSub);
+  nb.innerHTML=`<svg width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+    ${isSub?'<polyline points="20 6 9 17 4 12"/>':'<path d="M18 8A6 6 0 0 0 6 8c0 7-3 9-3 9h18s-3-2-3-9"/><path d="M13.73 21a2 2 0 0 1-3.46 0"/>'}
+  </svg>${isSub?'Notifications scheduled — 24h &amp; 1h before':'Notify me 24h and 1h before'}`;
+
+  // Simulate Agent B concierge
+  document.getElementById('concierge-content').innerHTML=`
+    <div class="loading-pulse">
+      <div class="pulse-dot"></div>
+      <span>Checking sky conditions for your location…</span>
+    </div>`;
+
+  document.getElementById('overlay').classList.add('open');
+  document.body.style.overflow='hidden';
+
+  setTimeout(()=>{
+    const cloud=Math.floor(Math.random()*65)+5;
+    const bortle=Math.floor(Math.random()*6)+1;
+    const resp=CONCIERGE_RESPONSES[Math.floor(Math.random()*CONCIERGE_RESPONSES.length)](ev,cloud,bortle);
+    document.getElementById('concierge-content').innerHTML=`
+      <p class="concierge-text">${resp}</p>
+      <div class="conditions">
+        <div class="cond-pill">
+          <svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M18 10h-1.26A8 8 0 1 0 9 20h9a5 5 0 0 0 0-10z"/></svg>
+          ${cloud}% cloud
+        </div>
+        <div class="cond-pill">
+          <svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><circle cx="12" cy="12" r="10"/></svg>
+          Bortle ${bortle}/9
+        </div>
+        <div class="cond-pill">
+          <svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M21 15a2 2 0 0 1-2 2H7l-4 4V5a2 2 0 0 1 2-2h14a2 2 0 0 1 2 2z"/></svg>
+          Agent B insight
+        </div>
+      </div>`;
+  },900);
+}
+
+function closeOverlay(){
+  document.getElementById('overlay').classList.remove('open');
+  document.body.style.overflow='';
+  activeEvent=null;
+}
+function closePanel(e){
+  if(e.target===document.getElementById('overlay'))closeOverlay();
+}
+document.addEventListener('keydown',e=>{if(e.key==='Escape')closeOverlay()});
+
+// ── LIVE COUNTDOWN TICK ──
+setInterval(()=>{
+  document.querySelectorAll('.countdown').forEach((el,i)=>{
+    const filtered=[...EVENTS].filter(ev=>{
+      if(activeFilter!=='ALL'&&ev.type!==activeFilter)return false;
+      if(searchQ&&!ev.name.toLowerCase().includes(searchQ))return false;
+      return true;
+    }).sort((a,b)=>a.eventUtcTime-b.eventUtcTime);
+    if(filtered[i])el.textContent=`in ${timeUntil(filtered[i].eventUtcTime)}`;
+  });
+},30000);
+</script>
+</body>
+</html>
